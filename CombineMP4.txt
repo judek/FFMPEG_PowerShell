@@ -1,0 +1,31 @@
+# This creates output commands for FFMPEG that will cut and join multipule MP4 files without re-encoding (Loss-less)
+# There are 2 parts to this. Part 1 will generate the commands to generate intermediate files 1.mts, 2.mts, 3.mts etc.
+# Part 2 generates the command to join all the intermediate files.
+#
+# With the command below one can create an csv file that will signify in and out point of 
+#
+# Example of List.txt
+#
+# File,in,out,description
+# QuickLaneChange.mp4,00:00:07,00:00:12,Change
+#
+#
+# I created this because I like editing video files and I like FFMPEG. However cutting and joining MP4 files and needing
+# to create intermediat files can be quite tedious. These commands help alot.
+#
+#
+#
+#
+# Part 1
+$csvData = import-csv List.csv
+$command = "ffmpeg -i {0} -ss {1} -t {2} -c copy -bsf:v h264_mp4toannexb -f mpegts -y {3}.ts"
+$csvData |  foreach {$counter = 1}{[string]::Format($command, $_.File, $_.in, ([timespan]$_.out - [timespan]$_.in).TotalSeconds, $counter);$counter++}
+
+# Part 2
+$joinOutput = ""
+$csvData | foreach {$counter = 1}{$joinOutput+=("|" + "$counter" + ".ts");$counter++}
+$joinOutput = $joinOutput.substring(1)
+$joinOutput
+
+"ffmpeg -i ""concat:$joinOutput"" -c copy -bsf:a aac_adtstoasc output.mp4"
+
